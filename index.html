@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Enhancer - All Features</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: auto; }
+        input, select, button, textarea { display: block; width: 100%; padding: 10px; margin: 10px 0; }
+        textarea { height: 80px; resize: vertical; }
+        img { max-width: 100%; margin: 10px 0; border: 2px solid #ccc; }
+        .loading { display: none; color: blue; margin: 10px 0; }
+        .result { display: none; }
+        .option-group { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .hidden { display: none; }
+        .flex { display: flex; gap: 10px; align-items: center; }
+        .half { width: 48%; }
+        .status { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🎨 AI Image Enhancer - Full Features</h1>
+    <p>By AlfiXD - https://whatsapp.com/channel/0029Vb4fjWE1yT25R7epR110</p>
+    
+    <div class="option-group">
+        <h3>1. Upload Image</h3>
+        <input type="file" id="imageInput" accept="image/*">
+        <div id="fileInfo" class="status">No file selected</div>
+        <div id="imagePreview">
+            <img id="previewImg" style="max-height: 200px; display: none;">
+        </div>
+    </div>
+    
+    <div class="option-group">
+        <h3>2. Select Feature</h3>
+        <select id="action" onchange="toggleOptions()">
+            <option value="toanime">🎨 Convert to Anime Style</option>
+            <option value="rmbg">🧹 Remove Background</option>
+            <option value="upscale">🔍 Upscale HD</option>
+            <option value="editimg">✏️ Edit with AI (ImageAI Editor)</option>
+            <option value="customanime">🎭 Custom Anime Style</option>
+        </select>
+    </div>
+    
+    <div id="styleGroup" class="option-group">
+        <h3>🎨 Anime Style</h3>
+        <select id="style">
+            <option value="anime">Anime</option>
+            <option value="manga">Manga</option>
+            <option value="ghibli">Ghibli Studio</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="watercolor">Watercolor</option>
+            <option value="pixelart">Pixel Art</option>
+            <option value="sketch">Pencil Sketch</option>
+            <option value="oilpainting">Oil Painting</option>
+        </select>
+    </div>
+    
+    <div id="scaleGroup" class="option-group hidden">
+        <h3>🔍 Upscale Options</h3>
+        <div class="flex">
+            <div class="half">
+                <label>Scale (2-10):</label>
+                <input type="number" id="scale" min="2" max="10" value="6">
+            </div>
+            <div class="half">
+                <label>OR Use Prompt:</label>
+                <input type="text" id="upscalePrompt" placeholder="Enhance quality and details...">
+            </div>
+        </div>
+    </div>
+    
+    <div id="promptGroup" class="option-group hidden">
+        <h3>✏️ AI Prompt</h3>
+        <textarea id="prompt" placeholder="Enter your instruction... 
+Example for editimg: 'Put Cristiano Ronaldo next to her'
+Example for customanime: 'Convert to RETRO 80s ANIME style with vibrant colors'"></textarea>
+    </div>
+    
+    <div id="modelGroup" class="option-group hidden">
+        <h3>🤖 AI Model</h3>
+        <select id="model">
+            <option value="nano_banana">Nano Banana (Fast)</option>
+            <option value="seed_dream">Seed Dream (Anime)</option>
+            <option value="flux">Flux (High Quality)</option>
+            <option value="qwen_image">Qwen Image (Creative)</option>
+        </select>
+    </div>
+    
+    <div class="option-group">
+        <h3>3. Process Image</h3>
+        <button onclick="processImage()" id="processBtn">🚀 Process Now</button>
+        <button onclick="resetAll()" style="background: #f0f0f0;">🔄 Reset All</button>
+        
+        <div id="loading" class="loading">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 20px; height: 20px; border: 3px solid #ccc; border-top: 3px solid blue; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <div>Processing... This may take 10-30 seconds</div>
+            </div>
+            <div id="progress" style="margin-top: 5px; font-size: 12px; color: #666;"></div>
+        </div>
+    </div>
+    
+    <div id="result" class="result option-group">
+        <h3>✅ Result</h3>
+        <div id="resultInfo" class="status"></div>
+        <img id="resultImage">
+        <div style="margin-top: 15px;">
+            <button onclick="downloadResult()">💾 Download Result</button>
+            <button onclick="copyResult()" style="background: #4CAF50;">📋 Copy URL</button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+        <h4>📋 Feature Details:</h4>
+        <ul>
+            <li><strong>🎨 Convert to Anime:</strong> Transform image to selected anime style</li>
+            <li><strong>🧹 Remove Background:</strong> Automatically remove image background</li>
+            <li><strong>🔍 Upscale HD:</strong> Increase image quality (2-10x scale) or use prompt</li>
+            <li><strong>✏️ Edit with AI:</strong> Edit image using text instructions with 4 AI models</li>
+            <li><strong>🎭 Custom Anime:</strong> Create custom anime style with your prompt</li>
+        </ul>
+    </div>
+
+    <script>
+        // Global variables
+        let currentResult = null;
+        let startTime = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleOptions();
+            
+            // Preview image when selected
+            document.getElementById('imageInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validate file size (max 15MB)
+                    if (file.size > 15 * 1024 * 1024) {
+                        alert('File too large! Max 15MB.');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    document.getElementById('fileInfo').innerHTML = 
+                        `<strong>Selected:</strong> ${file.name} (${formatFileSize(file.size)})`;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.getElementById('previewImg');
+                        img.src = e.target.result;
+                        img.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+        
+        // Toggle options based on selected feature
+        function toggleOptions() {
+            const action = document.getElementById('action').value;
+            
+            // Show/hide option groups
+            document.getElementById('styleGroup').style.display = 
+                (action === 'toanime') ? 'block' : 'none';
+            
+            document.getElementById('scaleGroup').classList.toggle('hidden', 
+                action !== 'upscale');
+            
+            document.getElementById('promptGroup').classList.toggle('hidden', 
+                !['editimg', 'customanime'].includes(action));
+            
+            document.getElementById('modelGroup').classList.toggle('hidden', 
+                action !== 'editimg');
+            
+            // Update placeholder based on action
+            const promptTextarea = document.getElementById('prompt');
+            if (action === 'editimg') {
+                promptTextarea.placeholder = 'Enter edit instruction...\nExample: "Put Cristiano Ronaldo next to her"';
+            } else if (action === 'customanime') {
+                promptTextarea.placeholder = 'Enter anime style description...\nExample: "Convert to RETRO 80s ANIME style with vibrant colors"';
+            }
+        }
+        
+        // Process image
+        async function processImage() {
+            const fileInput = document.getElementById('imageInput');
+            const action = document.getElementById('action').value;
+            const style = document.getElementById('style').value;
+            const prompt = document.getElementById('prompt').value;
+            const scale = document.getElementById('scale').value;
+            const upscalePrompt = document.getElementById('upscalePrompt').value;
+            const model = document.getElementById('model').value;
+            
+            // Validation
+            if (!fileInput.files[0]) {
+                alert('Please select an image first!');
+                return;
+            }
+            
+            if (action === 'editimg' || action === 'customanime') {
+                if (!prompt.trim()) {
+                    alert('Please enter a prompt/instruction for this feature!');
+                    return;
+                }
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('processBtn').disabled = true;
+            document.getElementById('result').style.display = 'none';
+            startTime = new Date();
+            
+            // Update progress
+            updateProgress('Converting image to base64...');
+            
+            try {
+                // Convert image to base64
+                const base64 = await toBase64(fileInput.files[0]);
+                
+                // Prepare request data
+                const requestData = {
+                    image: base64,
+                    action: action,
+                    style: style
+                };
+                
+                // Add optional fields
+                if (action === 'upscale') {
+                    if (upscalePrompt) {
+                        requestData.prompt = upscalePrompt;
+                    } else if (scale) {
+                        requestData.scale = scale;
+                    }
+                } else if (action === 'editimg') {
+                    requestData.prompt = prompt;
+                    requestData.model = model;
+                } else if (action === 'customanime') {
+                    requestData.prompt = prompt;
+                }
+                
+                updateProgress('Sending to AI API...');
+                
+                // Auto detect API URL
+                const apiBase = window.location.origin;
+                const apiUrl = `${apiBase}/api/enhance`;
+                
+                console.log('Sending to:', apiUrl);
+                
+                // Send to API
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                updateProgress('Processing with AI... (This may take 10-30 seconds)');
+                
+                const result = await response.json();
+                currentResult = result;
+                
+                if (result.error) {
+                    throw new Error(result.message || result.error);
+                }
+                
+                if (result.output) {
+                    // Show result
+                    document.getElementById('resultImage').src = result.output;
+                    document.getElementById('result').style.display = 'block';
+                    
+                    // Show result info
+                    const elapsed = Math.round((new Date() - startTime) / 1000);
+                    document.getElementById('resultInfo').innerHTML = 
+                        `<strong>✅ Success!</strong> Processed in ${elapsed} seconds<br>
+                         Action: ${action} | Style: ${style} | Status: ${result.status || 'completed'}`;
+                    
+                    updateProgress(`Done! Processed in ${elapsed} seconds`);
+                    
+                } else {
+                    throw new Error('No output received from API');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                updateProgress(`Error: ${error.message}`);
+            } finally {
+                // Hide loading after delay
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('processBtn').disabled = false;
+                }, 1000);
+            }
+        }
+        
+        // Update progress text
+        function updateProgress(text) {
+            const progress = document.getElementById('progress');
+            if (progress) {
+                progress.textContent = text;
+            }
+        }
+        
+        // Download result
+        function downloadResult() {
+            if (!currentResult || !currentResult.output) {
+                alert('No result to download!');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.href = currentResult.output;
+            link.download = `ai-enhanced-${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Copy result URL
+        function copyResult() {
+            if (!currentResult || !currentResult.output) {
+                alert('No result URL to copy!');
+                return;
+            }
+            
+            navigator.clipboard.writeText(currentResult.output)
+                .then(() => alert('Result URL copied to clipboard!'))
+                .catch(() => alert('Failed to copy URL'));
+        }
+        
+        // Reset all
+        function resetAll() {
+            document.getElementById('imageInput').value = '';
+            document.getElementById('fileInfo').textContent = 'No file selected';
+            document.getElementById('previewImg').style.display = 'none';
+            document.getElementById('prompt').value = '';
+            document.getElementById('upscalePrompt').value = '';
+            document.getElementById('scale').value = '6';
+            document.getElementById('result').style.display = 'none';
+            currentResult = null;
+        }
+        
+        // Helper functions
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+            });
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
